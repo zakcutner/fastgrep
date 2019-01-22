@@ -1,52 +1,40 @@
 mod grep;
 
-use std::env;
 use std::io;
 use std::process;
 
+use clap::{value_t_or_exit, App, Arg};
+
 use self::grep::Grep;
 
-const DEFAULT_THREADS: usize = 2;
-
-struct Args {
-  threads: usize,
-  needle: String,
-}
-
 fn main() {
-  let mut args = env::args();
+  let matches = App::new("fastgrep")
+    .version("0.1.0")
+    .about("Grep, but FAST! Uses multi-threading to grep very large files")
+    .arg(
+      Arg::with_name("NEEDLE")
+        .help("Substring to grep for within the given input")
+        .required(true),
+    )
+    .arg(
+      Arg::with_name("jobs")
+        .short("j")
+        .long("jobs")
+        .value_name("N")
+        .help("Number of jobs to run in parallel")
+        .required(true),
+    )
+    .get_matches();
 
-  // First argument is program name, should be discarded.
-  args.next();
+  let threads = value_t_or_exit!(matches, "jobs", usize);
 
-  let args = parse_args(&mut args).unwrap_or_else(|| {
-    eprintln!("Usage: fastgrep [-t threads] needle");
-    process::exit(1);
-  });
-
-  if args.threads < 2 {
+  if threads < 1 {
     eprintln!("Must have at least one worker thread!");
     process::exit(1);
   }
 
   let stdin = io::stdin();
 
-  let grep = Grep::new(stdin.lock(), args.needle);
-  grep.execute(args.threads - 1);
-}
-
-fn parse_args(args: &mut env::Args) -> Option<Args> {
-  match args.next()?.as_ref() {
-    "-t" => Some(Args {
-      threads: match args.next()?.parse() {
-        Ok(threads) => threads,
-        Err(_) => return None,
-      },
-      needle: parse_args(args)?.needle,
-    }),
-    arg => Some(Args {
-      threads: DEFAULT_THREADS,
-      needle: arg.to_owned(),
-    }),
-  }
+  let grep = Grep::new(stdin.lock(), matches.value_of("NEEDLE").unwrap().to_owned());
+  grep.execute(threads);
 }
