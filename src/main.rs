@@ -10,7 +10,7 @@ use self::positive::Positive;
 
 fn main() {
   let matches = App::new("fastgrep")
-    .version("0.2.0")
+    .version("0.2.1")
     .about("Grep, but FAST! Uses multi-threading to grep very large files")
     .arg(
       Arg::with_name("NEEDLE")

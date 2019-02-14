@@ -14,7 +14,11 @@ impl Worker {
       let task = receiver.recv().unwrap();
 
       match task {
-        Message::Task(job) => job.lock().unwrap().execute(),
+        Message::Task(job) => {
+          if let Ok(mut job) = job.try_lock() {
+            job.execute();
+          }
+        }
         Message::Terminate => break,
       }
     });
