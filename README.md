@@ -17,7 +17,7 @@ fastgrep 0.1.0
 Grep, but FAST! Uses multi-threading to grep very large files
 
 USAGE:
-    fastgrep <NEEDLE> --jobs <N>
+    fastgrep <NEEDLE> --jobs <N> --size <N>
 
 FLAGS:
     -h, --help       Prints help information
@@ -25,6 +25,7 @@ FLAGS:
 
 OPTIONS:
     -j, --jobs <N>    Number of jobs to run in parallel
+    -s, --size <N>    Number of lines to include for each job
 
 ARGS:
     <NEEDLE>    Substring to grep for within the given input

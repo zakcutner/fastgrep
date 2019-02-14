@@ -3,49 +3,53 @@ use std::sync::{Arc, Once};
 
 pub struct Job {
   once: Once,
-  line: String,
+  chunk: Vec<io::Result<String>>,
   needle: Arc<String>,
-  result: Option<String>,
+  result: Vec<String>,
 }
 
 impl Job {
-  pub fn new(line: io::Result<String>, needle: Arc<String>) -> Self {
+  pub fn new(chunk: Vec<io::Result<String>>, needle: Arc<String>) -> Self {
     Job {
       once: Once::new(),
-      line: line.unwrap(),
+      chunk,
       needle,
-      result: None,
+      result: Vec::new(),
     }
   }
 
   pub fn execute(&mut self) {
-    let line = &self.line;
+    let chunk = &self.chunk;
     let needle = &*self.needle;
     let result = &mut self.result;
 
     self.once.call_once(move || {
-      let matches = line.match_indices(needle);
-      let mut matches = matches.peekable();
+      for line in chunk {
+        let line = line.as_ref().unwrap();
 
-      if matches.peek().is_none() {
-        return;
+        let matches = line.match_indices(needle);
+        let mut matches = matches.peekable();
+
+        if matches.peek().is_none() {
+          continue;
+        }
+
+        let mut output = String::new();
+        let mut last_end = 0;
+
+        for (start, _) in matches {
+          output.push_str(unsafe { line.get_unchecked(last_end..start) });
+          push_coloured(&mut output, needle);
+          last_end = start + needle.len();
+        }
+
+        output.push_str(unsafe { line.get_unchecked(last_end..line.len()) });
+        result.push(output);
       }
-
-      let mut output = String::new();
-      let mut last_end = 0;
-
-      for (start, _) in matches {
-        output.push_str(unsafe { line.get_unchecked(last_end..start) });
-        push_coloured(&mut output, needle);
-        last_end = start + needle.len();
-      }
-
-      output.push_str(unsafe { line.get_unchecked(last_end..line.len()) });
-      *result = Some(output);
     });
   }
 
-  pub fn result(&self) -> &Option<String> {
+  pub fn result(&self) -> &Vec<String> {
     &self.result
   }
 }

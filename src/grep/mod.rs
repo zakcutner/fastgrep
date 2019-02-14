@@ -12,6 +12,7 @@ use self::worker::Worker;
 pub struct Grep<'a> {
   lines: Box<Iterator<Item = io::Result<String>> + 'a>,
   needle: Arc<String>,
+  jobs: Vec<Arc<Mutex<Job>>>,
 }
 
 impl<'a> Grep<'a> {
@@ -19,10 +20,11 @@ impl<'a> Grep<'a> {
     Grep {
       lines: Box::new(reader.lines()),
       needle: Arc::new(needle),
+      jobs: Vec::new(),
     }
   }
 
-  pub fn execute(self, threads: usize) {
+  pub fn execute(mut self, threads: usize, size: usize) {
     assert!(threads > 0);
     let mut workers = Vec::with_capacity(threads);
 
@@ -33,23 +35,27 @@ impl<'a> Grep<'a> {
       workers.push(Worker::new(receiver.clone()));
     }
 
-    let mut jobs = Vec::new();
+    let mut chunk = Vec::with_capacity(size);
 
-    for line in self.lines {
-      let job = Job::new(line, self.needle.clone());
-      let job = Arc::new(Mutex::new(job));
-      jobs.push(job.clone());
+    while let Some(line) = self.lines.next() {
+      chunk.push(line);
 
-      let message = Message::Task(job);
-      sender.send(message).unwrap();
+      if chunk.len() == size {
+        self.send_chunk(&sender, chunk);
+        chunk = Vec::with_capacity(size);
+      }
     }
 
-    for job in jobs.into_iter() {
+    if !chunk.is_empty() {
+      self.send_chunk(&sender, chunk);
+    }
+
+    for job in self.jobs.into_iter() {
       let mut job = job.lock().unwrap();
       job.execute();
 
-      if let Some(result) = job.result() {
-        println!("{}", result);
+      for line in job.result() {
+        println!("{}", line);
       }
     }
 
@@ -60,5 +66,14 @@ impl<'a> Grep<'a> {
     for worker in workers {
       worker.join();
     }
+  }
+
+  fn send_chunk(&mut self, sender: &mpsc::Sender<Message>, chunk: Vec<io::Result<String>>) {
+    let job = Job::new(chunk, self.needle.clone());
+    let job = Arc::new(Mutex::new(job));
+    self.jobs.push(job.clone());
+
+    let message = Message::Task(job);
+    sender.send(message).unwrap();
   }
 }

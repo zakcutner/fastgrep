@@ -24,17 +24,32 @@ fn main() {
         .help("Number of jobs to run in parallel")
         .required(true),
     )
+    .arg(
+      Arg::with_name("size")
+        .short("s")
+        .long("size")
+        .value_name("N")
+        .help("Number of lines to include for each job")
+        .required(true),
+    )
     .get_matches();
 
   let threads = value_t_or_exit!(matches, "jobs", usize);
+  let size = value_t_or_exit!(matches, "size", usize);
 
   if threads < 1 {
     eprintln!("Must have at least one worker thread!");
     process::exit(1);
   }
 
-  let stdin = io::stdin();
+  if size < 1 {
+    eprintln!("Must have at least one line per job!");
+    process::exit(1);
+  }
 
-  let grep = Grep::new(stdin.lock(), matches.value_of("NEEDLE").unwrap().to_owned());
-  grep.execute(threads);
+  let stdin = io::stdin();
+  let needle = matches.value_of("NEEDLE").unwrap().to_owned();
+
+  let grep = Grep::new(stdin.lock(), needle);
+  grep.execute(threads, size);
 }
