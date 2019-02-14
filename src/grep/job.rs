@@ -10,7 +10,7 @@ pub struct Job {
 
 impl Job {
   pub fn new(chunk: Vec<io::Result<String>>, needle: Arc<String>) -> Self {
-    Job {
+    Self {
       once: Once::new(),
       chunk,
       needle,

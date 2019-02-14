@@ -13,7 +13,7 @@
 ### Usage
 
 ```
-fastgrep 0.1.0
+fastgrep 0.2.0
 Grep, but FAST! Uses multi-threading to grep very large files
 
 USAGE:
@@ -24,8 +24,8 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -j, --jobs <N>    Number of jobs to run in parallel
-    -s, --size <N>    Number of lines to include for each job
+    -j, --jobs <N>    Sets number of jobs to run in parallel
+    -s, --size <N>    Sets number of lines to include in each job
 
 ARGS:
     <NEEDLE>    Substring to grep for within the given input
@@ -35,4 +35,5 @@ ARGS:
 ### Appendix
 
 - Requires Rust to be installed, can be obtained from [here](https://www.rust-lang.org/).
+- Greater job sizes will result in more lines being loaded into memory at once.
 - Please open an issue for any questions!

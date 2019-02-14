@@ -1,5 +1,6 @@
 mod job;
 mod message;
+mod printer;
 mod worker;
 
 use std::io;
@@ -7,29 +8,33 @@ use std::sync::{mpsc, Arc, Mutex};
 
 use self::job::Job;
 use self::message::Message;
+use self::printer::Printer;
 use self::worker::Worker;
 
 pub struct Grep<'a> {
   lines: Box<Iterator<Item = io::Result<String>> + 'a>,
   needle: Arc<String>,
-  jobs: Vec<Arc<Mutex<Job>>>,
 }
 
 impl<'a> Grep<'a> {
   pub fn new(reader: impl io::BufRead + 'a, needle: String) -> Self {
-    Grep {
+    Self {
       lines: Box::new(reader.lines()),
       needle: Arc::new(needle),
-      jobs: Vec::new(),
     }
   }
 
   pub fn execute(mut self, threads: usize, size: usize) {
     assert!(threads > 0);
-    let mut workers = Vec::with_capacity(threads);
 
-    let (sender, receiver) = mpsc::channel();
+    let (print_sender, receiver) = mpsc::channel();
+    let printer = Printer::new(receiver);
+
+    let (work_sender, receiver) = mpsc::sync_channel(threads);
     let receiver = Arc::new(Mutex::new(receiver));
+
+    let senders = (&print_sender, &work_sender);
+    let mut workers = Vec::with_capacity(threads);
 
     for _ in 0..threads {
       workers.push(Worker::new(receiver.clone()));
@@ -41,39 +46,40 @@ impl<'a> Grep<'a> {
       chunk.push(line);
 
       if chunk.len() == size {
-        self.send_chunk(&sender, chunk);
+        self.send_chunk(senders, chunk);
         chunk = Vec::with_capacity(size);
       }
     }
 
     if !chunk.is_empty() {
-      self.send_chunk(&sender, chunk);
+      self.send_chunk(senders, chunk);
     }
 
-    for job in self.jobs.into_iter() {
-      let mut job = job.lock().unwrap();
-      job.execute();
-
-      for line in job.result() {
-        println!("{}", line);
-      }
-    }
+    print_sender.send(Message::Terminate).unwrap();
 
     for _ in 0..threads {
-      sender.send(Message::Terminate).unwrap();
+      work_sender.send(Message::Terminate).unwrap();
     }
+
+    printer.join();
 
     for worker in workers {
       worker.join();
     }
   }
 
-  fn send_chunk(&mut self, sender: &mpsc::Sender<Message>, chunk: Vec<io::Result<String>>) {
+  fn send_chunk(
+    &self,
+    (print_sender, work_sender): (&mpsc::Sender<Message>, &mpsc::SyncSender<Message>),
+    chunk: Vec<io::Result<String>>,
+  ) {
     let job = Job::new(chunk, self.needle.clone());
     let job = Arc::new(Mutex::new(job));
-    self.jobs.push(job.clone());
+
+    let message = Message::Task(job.clone());
+    print_sender.send(message).unwrap();
 
     let message = Message::Task(job);
-    sender.send(message).unwrap();
+    work_sender.send(message).unwrap();
   }
 }

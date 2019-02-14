@@ -1,15 +1,16 @@
 mod grep;
+mod positive;
 
 use std::io;
-use std::process;
 
 use clap::{value_t_or_exit, App, Arg};
 
 use self::grep::Grep;
+use self::positive::Positive;
 
 fn main() {
   let matches = App::new("fastgrep")
-    .version("0.1.0")
+    .version("0.2.0")
     .about("Grep, but FAST! Uses multi-threading to grep very large files")
     .arg(
       Arg::with_name("NEEDLE")
@@ -21,7 +22,7 @@ fn main() {
         .short("j")
         .long("jobs")
         .value_name("N")
-        .help("Number of jobs to run in parallel")
+        .help("Sets number of jobs to run in parallel")
         .required(true),
     )
     .arg(
@@ -29,23 +30,13 @@ fn main() {
         .short("s")
         .long("size")
         .value_name("N")
-        .help("Number of lines to include for each job")
+        .help("Sets number of lines to include in each job")
         .required(true),
     )
     .get_matches();
 
-  let threads = value_t_or_exit!(matches, "jobs", usize);
-  let size = value_t_or_exit!(matches, "size", usize);
-
-  if threads < 1 {
-    eprintln!("Must have at least one worker thread!");
-    process::exit(1);
-  }
-
-  if size < 1 {
-    eprintln!("Must have at least one line per job!");
-    process::exit(1);
-  }
+  let threads = value_t_or_exit!(matches, "jobs", Positive).into();
+  let size = value_t_or_exit!(matches, "size", Positive).into();
 
   let stdin = io::stdin();
   let needle = matches.value_of("NEEDLE").unwrap().to_owned();

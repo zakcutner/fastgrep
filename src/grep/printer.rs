@@ -1,20 +1,26 @@
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
 
 use super::message::Message;
 
-pub struct Worker {
+pub struct Printer {
   thread: thread::JoinHandle<()>,
 }
 
-impl Worker {
-  pub fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
+impl Printer {
+  pub fn new(receiver: mpsc::Receiver<Message>) -> Self {
     let thread = thread::spawn(move || loop {
-      let receiver = receiver.lock().unwrap();
       let task = receiver.recv().unwrap();
 
       match task {
-        Message::Task(job) => job.lock().unwrap().execute(),
+        Message::Task(job) => {
+          let mut job = job.lock().unwrap();
+          job.execute();
+
+          for line in job.result() {
+            println!("{}", line);
+          }
+        }
         Message::Terminate => break,
       }
     });
