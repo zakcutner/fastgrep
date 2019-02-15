@@ -1,6 +1,6 @@
 [package]
 name = "fastgrep"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Zak Cutner (https://zakcutner.uk)"]
 edition = "2018"
 

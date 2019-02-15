@@ -1,3 +1,4 @@
+use std::io;
 use std::sync::mpsc;
 use std::thread;
 
@@ -8,7 +9,10 @@ pub struct Printer {
 }
 
 impl Printer {
-  pub fn new(receiver: mpsc::Receiver<Message>) -> Self {
+  pub fn new<W>(mut writer: W, receiver: mpsc::Receiver<Message>) -> Self
+  where
+    W: io::Write + Send + 'static,
+  {
     let thread = thread::spawn(move || loop {
       let task = receiver.recv().unwrap();
 
@@ -18,7 +22,7 @@ impl Printer {
           job.execute();
 
           for line in job.result() {
-            println!("{}", line);
+            writeln!(writer, "{}", line).unwrap();
           }
         }
         Message::Terminate => break,

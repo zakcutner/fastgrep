@@ -12,23 +12,29 @@ use self::printer::Printer;
 use self::worker::Worker;
 
 pub struct Grep<'a> {
-  lines: Box<Iterator<Item = io::Result<String>> + 'a>,
+  lines: Box<dyn Iterator<Item = io::Result<String>> + 'a>,
   needle: Arc<String>,
 }
 
 impl<'a> Grep<'a> {
-  pub fn new(reader: impl io::BufRead + 'a, needle: String) -> Self {
+  pub fn new<R>(reader: R, needle: String) -> Self
+  where
+    R: io::BufRead + 'a,
+  {
     Self {
       lines: Box::new(reader.lines()),
       needle: Arc::new(needle),
     }
   }
 
-  pub fn execute(mut self, threads: usize, size: usize) {
+  pub fn execute<W>(mut self, writer: W, threads: usize, size: usize)
+  where
+    W: io::Write + Send + 'static,
+  {
     assert!(threads > 0);
 
     let (print_sender, receiver) = mpsc::channel();
-    let printer = Printer::new(receiver);
+    let printer = Printer::new(writer, receiver);
 
     let (work_sender, receiver) = mpsc::sync_channel(threads);
     let receiver = Arc::new(Mutex::new(receiver));

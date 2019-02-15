@@ -10,7 +10,7 @@ use self::positive::Positive;
 
 fn main() {
   let matches = App::new("fastgrep")
-    .version("0.2.1")
+    .version("0.2.2")
     .about("Grep, but FAST! Uses multi-threading to grep very large files")
     .arg(
       Arg::with_name("NEEDLE")
@@ -38,9 +38,11 @@ fn main() {
   let threads = value_t_or_exit!(matches, "jobs", Positive).into();
   let size = value_t_or_exit!(matches, "size", Positive).into();
 
-  let stdin = io::stdin();
   let needle = matches.value_of("NEEDLE").unwrap().to_owned();
 
+  let stdin = io::stdin();
+  let stdout = io::stdout();
+
   let grep = Grep::new(stdin.lock(), needle);
-  grep.execute(threads, size);
+  grep.execute(stdout, threads, size);
 }
