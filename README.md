@@ -13,7 +13,7 @@
 ### Usage
 
 ```
-fastgrep 0.2.2
+fastgrep 0.2.3
 Grep, but FAST! Uses multi-threading to grep very large files
 
 USAGE:

@@ -37,7 +37,7 @@ dependencies = [
 
 [[package]]
 name = "fastgrep"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

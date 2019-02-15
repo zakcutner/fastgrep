@@ -6,16 +6,13 @@ impl FromStr for Positive {
   type Err = ();
 
   fn from_str(src: &str) -> Result<Self, Self::Err> {
-    match src.parse::<usize>() {
-      Ok(num) => {
-        if num > 0 {
-          Ok(Positive(num))
-        } else {
-          Err(())
-        }
+    if let Ok(num) = src.parse::<usize>() {
+      if num > 0 {
+        return Ok(Positive(num));
       }
-      Err(_) => Err(()),
     }
+
+    Err(())
   }
 }
 
