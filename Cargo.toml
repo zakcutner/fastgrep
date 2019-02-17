@@ -1,8 +1,9 @@
 [package]
 name = "fastgrep"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Zak Cutner (https://zakcutner.uk)"]
 edition = "2018"
 
 [dependencies]
+atty = "0.2"
 clap = "2.32"

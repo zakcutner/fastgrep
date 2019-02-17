@@ -5,15 +5,17 @@ pub struct Job {
   once: Once,
   chunk: Vec<io::Result<String>>,
   needle: Arc<String>,
+  colour: bool,
   result: Vec<String>,
 }
 
 impl Job {
-  pub fn new(chunk: Vec<io::Result<String>>, needle: Arc<String>) -> Self {
+  pub fn new(chunk: Vec<io::Result<String>>, needle: Arc<String>, colour: bool) -> Self {
     Self {
       once: Once::new(),
       chunk,
       needle,
+      colour,
       result: Vec::new(),
     }
   }
@@ -21,6 +23,7 @@ impl Job {
   pub fn execute(&mut self) {
     let chunk = &self.chunk;
     let needle = &*self.needle;
+    let colour = &self.colour;
     let result = &mut self.result;
 
     self.once.call_once(move || {
@@ -34,7 +37,12 @@ impl Job {
           continue;
         }
 
-        let mut output = String::new();
+        if !colour {
+          result.push(line.clone());
+          continue;
+        }
+
+        let mut output = String::with_capacity(line.len());
         let mut last_end = 0;
 
         for (start, _) in matches {

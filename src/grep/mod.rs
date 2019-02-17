@@ -11,9 +11,14 @@ use self::message::Message;
 use self::printer::Printer;
 use self::worker::Worker;
 
+type Senders<'a> = (&'a mpsc::Sender<Message>, &'a mpsc::SyncSender<Message>);
+
 pub struct Grep<'a> {
   lines: Box<dyn Iterator<Item = io::Result<String>> + 'a>,
   needle: Arc<String>,
+  threads: usize,
+  size: usize,
+  colour: bool,
 }
 
 impl<'a> Grep<'a> {
@@ -24,36 +29,51 @@ impl<'a> Grep<'a> {
     Self {
       lines: Box::new(reader.lines()),
       needle: Arc::new(needle),
+      threads: 1,
+      size: 1,
+      colour: true,
     }
   }
 
-  pub fn execute<W>(mut self, writer: W, threads: usize, size: usize)
+  pub fn set_threads(&mut self, threads: usize) {
+    assert!(threads > 0);
+    self.threads = threads;
+  }
+
+  pub fn set_size(&mut self, size: usize) {
+    assert!(size > 0);
+    self.size = size;
+  }
+
+  pub fn set_colour(&mut self, colour: bool) {
+    self.colour = colour;
+  }
+
+  pub fn execute<W>(mut self, writer: W)
   where
     W: io::Write + Send + 'static,
   {
-    assert!(threads > 0);
-
     let (print_sender, receiver) = mpsc::channel();
     let printer = Printer::new(writer, receiver);
 
-    let (work_sender, receiver) = mpsc::sync_channel(threads);
+    let (work_sender, receiver) = mpsc::sync_channel(self.threads);
     let receiver = Arc::new(Mutex::new(receiver));
 
     let senders = (&print_sender, &work_sender);
-    let mut workers = Vec::with_capacity(threads);
+    let mut workers = Vec::with_capacity(self.threads);
 
-    for _ in 0..threads {
+    for _ in 0..self.threads {
       workers.push(Worker::new(receiver.clone()));
     }
 
-    let mut chunk = Vec::with_capacity(size);
+    let mut chunk = Vec::with_capacity(self.size);
 
     while let Some(line) = self.lines.next() {
       chunk.push(line);
 
-      if chunk.len() == size {
+      if chunk.len() == self.size {
         self.send_chunk(senders, chunk);
-        chunk = Vec::with_capacity(size);
+        chunk = Vec::with_capacity(self.size);
       }
     }
 
@@ -63,7 +83,7 @@ impl<'a> Grep<'a> {
 
     print_sender.send(Message::Terminate).unwrap();
 
-    for _ in 0..threads {
+    for _ in 0..self.threads {
       work_sender.send(Message::Terminate).unwrap();
     }
 
@@ -74,12 +94,8 @@ impl<'a> Grep<'a> {
     }
   }
 
-  fn send_chunk(
-    &self,
-    (print_sender, work_sender): (&mpsc::Sender<Message>, &mpsc::SyncSender<Message>),
-    chunk: Vec<io::Result<String>>,
-  ) {
-    let job = Job::new(chunk, self.needle.clone());
+  fn send_chunk(&self, (print_sender, work_sender): Senders, chunk: Vec<io::Result<String>>) {
+    let job = Job::new(chunk, self.needle.clone(), self.colour);
     let job = Arc::new(Mutex::new(job));
 
     let message = Message::Task(job.clone());
