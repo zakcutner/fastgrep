@@ -1,6 +1,6 @@
 ## fastgrep
 
-**🚀 Grep, but _FAST_! Uses multi-threading to grep very large files**
+**:rocket: Grep, but _FAST_! Uses multi-threading to grep very large files**
 
 
 ### Installation
