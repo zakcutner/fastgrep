@@ -1,9 +1,11 @@
 [package]
 name = "fastgrep"
-version = "0.2.4"
+version = "0.3.0"
 authors = ["Zak Cutner (https://zakcutner.uk)"]
+description = "Grep, but FAST! Uses multi-threading to grep very large files"
 edition = "2018"
 
 [dependencies]
 atty = "0.2"
 clap = "2.32"
+regex = "1.1"

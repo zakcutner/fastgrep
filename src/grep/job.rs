@@ -1,20 +1,22 @@
 use std::io;
-use std::sync::{Arc, Once};
+use std::sync::Once;
+
+use super::ArcPattern;
 
 pub struct Job {
   once: Once,
   chunk: Vec<io::Result<String>>,
-  needle: Arc<String>,
+  pattern: ArcPattern,
   colour: bool,
   result: Vec<String>,
 }
 
 impl Job {
-  pub fn new(chunk: Vec<io::Result<String>>, needle: Arc<String>, colour: bool) -> Self {
+  pub fn new(chunk: Vec<io::Result<String>>, pattern: ArcPattern, colour: bool) -> Self {
     Self {
       once: Once::new(),
       chunk,
-      needle,
+      pattern,
       colour,
       result: Vec::new(),
     }
@@ -22,7 +24,7 @@ impl Job {
 
   pub fn execute(&mut self) {
     let chunk = &self.chunk;
-    let needle = &*self.needle;
+    let pattern = &*self.pattern;
     let colour = &self.colour;
     let result = &mut self.result;
 
@@ -30,10 +32,9 @@ impl Job {
       for line in chunk {
         let line = line.as_ref().unwrap();
 
-        let matches = line.match_indices(needle);
-        let mut matches = matches.peekable();
+        let matches = pattern.find(line);
 
-        if matches.peek().is_none() {
+        if matches.is_empty() {
           continue;
         }
 
@@ -45,10 +46,10 @@ impl Job {
         let mut output = String::with_capacity(line.len());
         let mut last_end = 0;
 
-        for (start, _) in matches {
+        for (start, end) in matches {
           output.push_str(unsafe { line.get_unchecked(last_end..start) });
-          push_coloured(&mut output, needle);
-          last_end = start + needle.len();
+          push_coloured(&mut output, unsafe { line.get_unchecked(start..end) });
+          last_end = end;
         }
 
         output.push_str(unsafe { line.get_unchecked(last_end..line.len()) });

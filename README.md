@@ -13,22 +13,25 @@
 ### Usage
 
 ```
-fastgrep 0.2.4
+fastgrep 0.3.0
+Zak Cutner (https://zakcutner.uk)
 Grep, but FAST! Uses multi-threading to grep very large files
 
 USAGE:
-    fastgrep <NEEDLE> --jobs <N> --size <N>
+    fastgrep [FLAGS] [OPTIONS] <PATTERN> --jobs <NUMBER> --size <NUMBER>
 
 FLAGS:
     -h, --help       Prints help information
+    -r, --regex      Enables regular expression patterns
     -V, --version    Prints version information
 
 OPTIONS:
-    -j, --jobs <N>    Sets number of jobs to run in parallel
-    -s, --size <N>    Sets number of lines to include in each job
+    -c, --colour=<WHEN>    Sets when the output should be coloured, can be `auto', `always' or `never'
+    -j, --jobs <NUMBER>    Sets number of jobs to run in parallel, must be at least one
+    -s, --size <NUMBER>    Sets number of lines to include in each job, must be at least one
 
 ARGS:
-    <NEEDLE>    Substring to grep for within the given input
+    <PATTERN>    Pattern to grep for within the given input
 ```
 
 

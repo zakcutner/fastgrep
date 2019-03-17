@@ -1,3 +1,5 @@
+pub mod pattern;
+
 mod job;
 mod message;
 mod printer;
@@ -8,31 +10,40 @@ use std::sync::{mpsc, Arc, Mutex};
 
 use self::job::Job;
 use self::message::Message;
+use self::pattern::Pattern;
 use self::printer::Printer;
 use self::worker::Worker;
 
+type ArcPattern = Arc<dyn Pattern + Send + Sync>;
 type Senders<'a> = (&'a mpsc::Sender<Message>, &'a mpsc::SyncSender<Message>);
 
 pub struct Grep<'a> {
   lines: Box<dyn Iterator<Item = io::Result<String>> + 'a>,
-  needle: Arc<String>,
+  pattern: Option<ArcPattern>,
   threads: usize,
   size: usize,
   colour: bool,
 }
 
 impl<'a> Grep<'a> {
-  pub fn new<R>(reader: R, needle: String) -> Self
+  pub fn new<R>(reader: R) -> Self
   where
     R: io::BufRead + 'a,
   {
     Self {
       lines: Box::new(reader.lines()),
-      needle: Arc::new(needle),
+      pattern: None,
       threads: 1,
       size: 1,
       colour: true,
     }
+  }
+
+  pub fn set_pattern<P>(&mut self, pattern: P)
+  where
+    P: Pattern + Send + Sync + 'static,
+  {
+    self.pattern = Some(Arc::new(pattern));
   }
 
   pub fn set_threads(&mut self, threads: usize) {
@@ -95,7 +106,9 @@ impl<'a> Grep<'a> {
   }
 
   fn send_chunk(&self, (print_sender, work_sender): Senders, chunk: Vec<io::Result<String>>) {
-    let job = Job::new(chunk, self.needle.clone(), self.colour);
+    let pattern = self.pattern.as_ref().unwrap();
+
+    let job = Job::new(chunk, pattern.clone(), self.colour);
     let job = Arc::new(Mutex::new(job));
 
     let message = Message::Task(job.clone());
