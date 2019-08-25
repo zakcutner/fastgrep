@@ -8,3 +8,15 @@ os:
 
 script:
   - cargo build --release
+  - EXTENSION="$([ "$TRAVIS_OS_NAME" == "windows" ] && echo ".exe" || echo "")"
+  - ARTIFACT="$(mktemp -d)/fastgrep-$TRAVIS_TAG-$TRAVIS_OS_NAME$EXTENSION"
+  - cp "target/release/fastgrep$EXTENSION" "$ARTIFACT"
+
+deploy:
+  provider: releases
+  api_key:
+    secure: jBbQcDuww7TvWLmgV6oG1+jiQAXyM/0Fzwp8molUriuKPL3TYnMPj2GtlMjMxjyORtDKJlhCf0ARdCA/SzE/SUJCa3jnMe/Jk/OpOu3QWxEEt2OtAUNuEqwJZswAFeC/AnJzGz4ugF4TWMUGJAsWXsvFiviwxtEy0IGQ/iXS4CT5Jbx255/rxBoT7/NluZpVPrDvAqw/c3Sil6Cxehc+bFt7xgOTJ3Tpnoa29O7g81NbpqYdPxGDYzM7MaMDVfg0ni5g8JG6CY0NAI+5cnm4PUz82beC6Fl2YcAG9w1IFdongT4zDjoUgO7zDlqE85lcSpMEPk2ZvpCeTqf4zhwn5OXDFUoriANH4y07EoDa/LKxPeZlhy64/Sa/Qu7P9+jVCkX4SUjevKCiZMaif3jdJ9Sc5I/mM+EWox5oDgnd6oB89mSBZ4Mrp/VGhPphqWKyBbN7Vr5cvceVFJzpGsvtFzU9/bUm9w7YlZwnDIbz0Ps+JhklZCP+k5FK43jsorXWDfO1+/9SgmBtOdykSiN04r/+EU2Q2I13WbU1QoI1tpDNyyv4FhPl2MvmI0NpqDaT3i8jYgIK1sjMNhl6E7Il1GtwpnyE/o59lZTl77PUKYfMXW9n0i0V4iqgR3efOFAbG6xhadB7up9T1QW8mEi3932pBnJ1KGH7WKU5Mll2b34=
+  file: $ARTIFACT
+  skip_cleanup: true
+  on:
+    tags: true

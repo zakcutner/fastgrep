@@ -13,7 +13,7 @@
 ### Usage
 
 ```
-fastgrep 0.3.0
+fastgrep 0.3.1
 Zak Cutner (https://zakcutner.uk)
 Grep, but FAST! Uses multi-threading to grep very large files
 
