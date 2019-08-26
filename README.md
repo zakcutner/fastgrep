@@ -1,5 +1,8 @@
 ## fastgrep
 
+![Latest Release](https://img.shields.io/github/v/release/zakcutner/fastgrep)
+[![Build Status](https://travis-ci.com/zakcutner/fastgrep.svg?branch=master)](https://travis-ci.com/zakcutner/fastgrep)
+
 **:rocket: Grep, but _FAST_! Uses multi-threading to grep very large files**
 
 
