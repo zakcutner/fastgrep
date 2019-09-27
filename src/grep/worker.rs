@@ -4,29 +4,29 @@ use std::thread;
 use super::message::Message;
 
 pub struct Worker {
-  thread: thread::JoinHandle<()>,
+    thread: thread::JoinHandle<()>,
 }
 
 impl Worker {
-  pub fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
-    let thread = thread::spawn(move || loop {
-      let receiver = receiver.lock().unwrap();
-      let task = receiver.recv().unwrap();
+    pub fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
+        let thread = thread::spawn(move || loop {
+            let receiver = receiver.lock().unwrap();
+            let task = receiver.recv().unwrap();
 
-      match task {
-        Message::Task(job) => {
-          if let Ok(mut job) = job.try_lock() {
-            job.execute();
-          }
-        }
-        Message::Terminate => break,
-      }
-    });
+            match task {
+                Message::Task(job) => {
+                    if let Ok(mut job) = job.try_lock() {
+                        job.execute();
+                    }
+                }
+                Message::Terminate => break,
+            }
+        });
 
-    Self { thread }
-  }
+        Self { thread }
+    }
 
-  pub fn join(self) {
-    self.thread.join().unwrap();
-  }
+    pub fn join(self) {
+        self.thread.join().unwrap();
+    }
 }
