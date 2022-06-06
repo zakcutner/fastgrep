@@ -8,4 +8,4 @@ edition = "2018"
 [dependencies]
 atty = "0.2"
 clap = "2.32"
-regex = "1.1"
+regex = "1.5"
